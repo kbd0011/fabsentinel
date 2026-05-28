@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FabSentinel — Weekly SPC Scorecard</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px auto; max-width: 900px; color: #222; }
+  h1 { border-bottom: 2px solid #444; padding-bottom: 6px; }
+  h2 { margin-top: 28px; color: #2a4365; }
+  .meta { color: #555; font-size: 0.9em; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 16px 0; }
+  .kpi { background: #f7fafc; border-left: 4px solid #4299e1; padding: 10px 14px; }
+  .kpi .label { color: #555; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .value { font-size: 1.6em; font-weight: bold; color: #1a365d; }
+  table.table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.9em; }
+  table.table th, table.table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; }
+  table.table thead { background: #edf2f7; }
+  .notes { background: #fffbea; border-left: 4px solid #d69e2e; padding: 10px 14px; font-size: 0.9em; }
+  footer { margin-top: 40px; color: #777; font-size: 0.8em; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+</style>
+</head>
+<body>
+<h1>FabSentinel — Weekly SPC Scorecard</h1>
+<p class="meta">Week: <b>{{ payload.week_label }}</b> &middot; Generated: {{ generated }}</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Lots</div><div class="value">{{ payload.n_lots }}</div></div>
+  <div class="kpi"><div class="label">Fails</div><div class="value">{{ payload.n_fails }}</div></div>
+  <div class="kpi"><div class="label">Pass:Fail</div><div class="value">{{ "%.1f"|format(payload.pass_fail_ratio) }}:1</div></div>
+  <div class="kpi"><div class="label">VM PR-AUC</div><div class="value">{{ "%.3f"|format(payload.vm_metrics.get('test_pr_auc', 0.0)) }}</div></div>
+  <div class="kpi"><div class="label">VM MCC</div><div class="value">{{ "%.3f"|format(payload.vm_metrics.get('test_mcc', 0.0)) }}</div></div>
+</div>
+
+<h2>Top 10 Hotelling T² Lots (potential excursions)</h2>
+{{ top_t2|safe }}
+
+<h2>Top 10 OOC Signals (univariate)</h2>
+{{ top_ooc|safe }}
+
+<h2>Capability Indices (simulated-spec subset)</h2>
+<p class="notes">SECOM is anonymized; engineering spec limits do not exist in the dataset. Cp/Cpk are shown on signals where USL and LSL were simulated as mean ± 4σ. Methodology is correct; the specific numbers are illustrative.</p>
+{{ capability|safe }}
+
+<h2>Global SHAP Feature Ranking</h2>
+{{ shap_top|safe }}
+
+{% if payload.notes %}
+<h2>Notes</h2>
+<div class="notes">{{ payload.notes }}</div>
+{% endif %}
+
+<footer>
+FabSentinel v0.1.0 &middot; SPC + Virtual Metrology + Excursion RCA &middot;
+Built on UCI SECOM (McCann &amp; Johnston, CC BY 4.0).
+</footer>
+</body>
+</html>

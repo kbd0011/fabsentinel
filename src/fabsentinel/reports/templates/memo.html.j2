@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FabSentinel — 8D Excursion Memo</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px auto; max-width: 900px; color: #222; }
+  h1 { border-bottom: 2px solid #444; padding-bottom: 6px; }
+  h2 { color: #2a4365; margin-top: 28px; }
+  h3 { color: #2c5282; }
+  .meta { color: #555; font-size: 0.9em; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 16px 0; }
+  .kpi { background: #f7fafc; border-left: 4px solid #c53030; padding: 10px 14px; }
+  .kpi .label { color: #555; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .value { font-size: 1.4em; font-weight: bold; color: #1a365d; }
+  table.table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.9em; }
+  table.table th, table.table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; }
+  table.table thead { background: #edf2f7; }
+  .d-block { background: #f7fafc; border-left: 4px solid #4299e1; padding: 10px 14px; margin: 8px 0; }
+  .ai-note { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 8px 12px; font-size: 0.85em; margin: 8px 0; }
+  ul { margin: 4px 0; }
+  footer { margin-top: 40px; color: #777; font-size: 0.8em; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+</style>
+</head>
+<body>
+<h1>FabSentinel — 8D Excursion Memo</h1>
+<p class="meta">Lot index: <b>{{ event.lot_idx }}</b> &middot; Timestamp: <b>{{ event.timestamp }}</b> &middot; Generated: {{ generated }}</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Hotelling T²</div><div class="value">{{ "%.2f"|format(event.t2) }}</div></div>
+  <div class="kpi"><div class="label">SPE</div><div class="value">{{ "%.2f"|format(event.spe) }}</div></div>
+  <div class="kpi"><div class="label">VM Fail Probability</div><div class="value">{{ "%.3f"|format(event.predicted_fail_proba) }}</div></div>
+  <div class="kpi"><div class="label">Actual Label</div><div class="value">{{ event.actual_label if event.actual_label is not none else "n/a" }}</div></div>
+</div>
+
+<h2>D1 — Team</h2>
+<div class="d-block">{{ event.d1_team | join(', ') }}</div>
+
+<h2>D2 — Problem Description</h2>
+<div class="d-block">{{ event.d2_problem }}</div>
+
+<h2>D3 — Containment</h2>
+<div class="d-block">{{ event.d3_containment }}</div>
+
+<h2>D4 — Candidate Root Causes (top SHAP-attributed signals)</h2>
+<div class="d-block">
+<ul>
+{% for cause in event.d4_root_cause_candidates %}<li>{{ cause }}</li>{% endfor %}
+</ul>
+</div>
+
+<h3>Top T² Contributors</h3>
+{{ top_contrib|safe }}
+
+<h3>SHAP Local Attribution</h3>
+{{ shap_table|safe }}
+
+<h2>D5 — Corrective Action</h2>
+<div class="d-block">{{ event.d5_corrective_action }}</div>
+
+<h2>D6 — Implement &amp; Verify</h2>
+<div class="d-block">{{ event.d6_implement }}</div>
+
+<h2>D7 — Prevent Recurrence</h2>
+<div class="d-block">{{ event.d7_prevent }}</div>
+
+<h2>D8 — Recognize Team</h2>
+<div class="d-block">{{ event.d8_recognize }}</div>
+
+{% if event.llm_narrative %}
+<h2>AI-Drafted Narrative (suggestion only)</h2>
+<div class="ai-note">
+<b>Note:</b> The text below was drafted by a Large Language Model from the deterministic
+SHAP attribution above.  It is an editorial suggestion, not an engineering diagnosis.
+A human engineer must review and approve before this memo is published.
+</div>
+<div class="d-block">{{ event.llm_narrative }}</div>
+{% endif %}
+
+<footer>
+FabSentinel v0.1.0 &middot; 8D excursion memo &middot;
+Generated from UCI SECOM (McCann &amp; Johnston, CC BY 4.0).
+</footer>
+</body>
+</html>
