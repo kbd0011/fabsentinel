@@ -17,7 +17,7 @@ def test_prepare_handles_nan(secom_like_df):
     df = secom_like_df.copy()
     df.loc[5, "signal_010"] = np.nan
     signal_cols = [c for c in df.columns if c.startswith("signal_")]
-    X, y = prepare(df, signal_cols)
+    X, _ = prepare(df, signal_cols)
     assert not X.isna().any().any()
 
 

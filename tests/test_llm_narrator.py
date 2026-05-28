@@ -1,8 +1,7 @@
 """Tests for LLM narrator (provider boundary, no real API call)."""
-import os
 
 from fabsentinel.config import LLMCfg
-from fabsentinel.llm.narrator import OpenAINarrator, NarratorPayload, get_narrator
+from fabsentinel.llm.narrator import NarratorPayload, OpenAINarrator, get_narrator
 
 
 def _payload():

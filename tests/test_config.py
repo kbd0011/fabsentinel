@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
 from fabsentinel.config import (
     FabSentinelConfig,
@@ -29,5 +30,5 @@ def test_config_rejects_extra_fields(tmp_path):
     bad["bogus"] = True
     p = tmp_path / "bad.yaml"
     p.write_text(yaml.safe_dump(bad))
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, ValidationError)):
         load_config(p)

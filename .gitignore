@@ -27,3 +27,7 @@ artifacts/figures/
 # Keep dataset though it's large - it's the contract input
 !data/secom.data
 !data/secom_labels.data
+
+# runtime outputs
+mlflow.db
+data/cleaned.parquet

@@ -1,10 +1,9 @@
 """Ingest tests - run against the bundled SECOM (small, ~5MB)."""
-from pathlib import Path
 
 import pytest
 
 from fabsentinel.config import load_config
-from fabsentinel.data.ingest import load_secom, to_parquet, load_processed
+from fabsentinel.data.ingest import load_processed, load_secom, to_parquet
 
 
 @pytest.fixture(scope="module")

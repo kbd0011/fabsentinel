@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from fabsentinel.reports.scorecard import ScorecardPayload, render as render_scorecard, quarto_available
-from fabsentinel.reports.excursion_memo import ExcursionEvent, render as render_memo
-
+from fabsentinel.reports.excursion_memo import ExcursionEvent
+from fabsentinel.reports.excursion_memo import render as render_memo
+from fabsentinel.reports.scorecard import ScorecardPayload, quarto_available
+from fabsentinel.reports.scorecard import render as render_scorecard
 
 TEMPLATE_DIR = Path("src/fabsentinel/reports/templates")
 

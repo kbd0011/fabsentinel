@@ -1,14 +1,14 @@
 """Tests for Western Electric + Nelson rules."""
 import numpy as np
 
-from fabsentinel.spc.rules import western_electric, nelson
+from fabsentinel.spc.rules import nelson, western_electric
 
 
 def test_rule_1_single_point_beyond_3sigma():
     arr = np.zeros(20)
     arr[10] = 4.0
     mask = western_electric(arr, mean=0.0, sigma=1.0, rules=[1])
-    assert mask[10] is np.bool_(True) or mask[10] == True
+    assert bool(mask[10])
 
 
 def test_rule_4_eight_in_a_row_same_side():

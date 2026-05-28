@@ -35,10 +35,7 @@ def profile(df: pd.DataFrame, cfg: QualityCfg) -> QualityReport:
 
     n_lots = len(df)
     n_signals = len(signal_cols)
-    if "label" in df.columns:
-        n_fails = int((df["label"] == 1).sum())
-    else:
-        n_fails = 0
+    n_fails = int((df["label"] == 1).sum()) if "label" in df.columns else 0
     ratio = (n_lots - n_fails) / max(n_fails, 1)
 
     missing_frac = df[signal_cols].isna().mean()

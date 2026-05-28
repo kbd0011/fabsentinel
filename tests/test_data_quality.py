@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from fabsentinel.config import QualityCfg
-from fabsentinel.data.quality import profile, clean
+from fabsentinel.data.quality import clean, profile
 
 
 def test_profile_basic_shape(secom_like_df):

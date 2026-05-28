@@ -14,13 +14,14 @@ import streamlit as st
 
 from fabsentinel.config import load_config
 from fabsentinel.data.ingest import load_processed
-from fabsentinel.spc.shewhart import fit_individuals
+from fabsentinel.llm.narrator import NarratorPayload, OpenAINarrator
+from fabsentinel.rca.shap_attribution import fit as shap_fit
+from fabsentinel.rca.shap_attribution import top_features_for_lot
 from fabsentinel.spc.ewma import fit_and_detect as ewma_run
 from fabsentinel.spc.multivariate import contribution_plot
+from fabsentinel.spc.shewhart import fit_individuals
 from fabsentinel.vm.features import prepare
 from fabsentinel.vm.train import load as vm_load
-from fabsentinel.rca.shap_attribution import fit as shap_fit, top_features_for_lot
-from fabsentinel.llm.narrator import OpenAINarrator, NarratorPayload
 
 st.set_page_config(page_title="FabSentinel", layout="wide", page_icon="📊")
 st.title("FabSentinel — SPC + Virtual Metrology + Excursion RCA")
@@ -119,11 +120,11 @@ with tab_univ:
     sh = fit_individuals(arr)
     ewma_state, ewma_mask = ewma_run(arr)
     fig = go.Figure()
-    fig.add_scatter(y=arr, mode="lines+markers", name=sig, line=dict(color="#4299e1"))
+    fig.add_scatter(y=arr, mode="lines+markers", name=sig, line={"color": "#4299e1"})
     fig.add_hline(y=sh.mean, line_dash="dash", line_color="green", annotation_text="mean")
     fig.add_hline(y=sh.ucl, line_dash="dash", line_color="red", annotation_text="UCL")
     fig.add_hline(y=sh.lcl, line_dash="dash", line_color="red", annotation_text="LCL")
-    fig.add_scatter(y=ewma_state.z, mode="lines", name="EWMA Z", line=dict(color="#dd6b20"))
+    fig.add_scatter(y=ewma_state.z, mode="lines", name="EWMA Z", line={"color": "#dd6b20"})
     st.plotly_chart(fig, use_container_width=True)
     st.caption(f"Mean={sh.mean:.3f}, sigma={sh.sigma:.3f}, OOC count (Shewhart) = {int((arr > sh.ucl).sum() + (arr < sh.lcl).sum())}")
 

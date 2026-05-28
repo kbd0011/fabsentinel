@@ -65,7 +65,6 @@ def fit(
 
     pca = PCA(n_components=k).fit(Xs)
     T = pca.transform(Xs)
-    lambdas = pca.explained_variance_  # eigenvalues of cov(Xs) for first k PCs
 
     # Hotelling T^2 UCL via F distribution
     n = Xs.shape[0]

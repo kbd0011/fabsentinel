@@ -5,33 +5,37 @@ from datetime import datetime
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 import typer
-from loguru import logger
 
-from fabsentinel.config import load_config
-from fabsentinel.data.ingest import load_secom, to_parquet, load_processed
-from fabsentinel.data.quality import profile, clean
-from fabsentinel.spc.shewhart import fit_individuals, detect as shew_detect
-from fabsentinel.spc.ewma import fit_and_detect as ewma_run
-from fabsentinel.spc.cusum import fit_and_detect as cusum_run
-from fabsentinel.spc.rules import western_electric, nelson
-from fabsentinel.spc.multivariate import fit as mspc_fit, compute_statistics, contribution_plot
+from fabsentinel.config import FabSentinelConfig, load_config
+from fabsentinel.data.ingest import load_processed, load_secom, to_parquet
+from fabsentinel.data.quality import clean, profile
+from fabsentinel.llm.narrator import NarratorPayload, OpenAINarrator
+from fabsentinel.rca.shap_attribution import fit as shap_fit
+from fabsentinel.rca.shap_attribution import top_features_for_lot
+from fabsentinel.reports.excursion_memo import ExcursionEvent
+from fabsentinel.reports.excursion_memo import render as render_memo
+from fabsentinel.reports.scorecard import ScorecardPayload
+from fabsentinel.reports.scorecard import render as render_scorecard
 from fabsentinel.spc.capability import simulate_specs_and_estimate
+from fabsentinel.spc.cusum import fit_and_detect as cusum_run
+from fabsentinel.spc.ewma import fit_and_detect as ewma_run
+from fabsentinel.spc.multivariate import compute_statistics, contribution_plot
+from fabsentinel.spc.multivariate import fit as mspc_fit
+from fabsentinel.spc.rules import nelson, western_electric
+from fabsentinel.spc.shewhart import detect as shew_detect
+from fabsentinel.spc.shewhart import fit_individuals
 from fabsentinel.vm.features import prepare
-from fabsentinel.vm.train import train as vm_train, load as vm_load
-from fabsentinel.rca.shap_attribution import fit as shap_fit, top_features_for_lot
-from fabsentinel.reports.scorecard import ScorecardPayload, render as render_scorecard
-from fabsentinel.reports.excursion_memo import ExcursionEvent, render as render_memo
-from fabsentinel.llm.narrator import OpenAINarrator, NarratorPayload, get_narrator
+from fabsentinel.vm.train import load as vm_load
+from fabsentinel.vm.train import train as vm_train
 
 app = typer.Typer(help="FabSentinel: SPC, virtual metrology, and excursion RCA for semiconductor manufacturing.")
 
 CONFIG_PATH = Path("configs/config.yaml")
 
 
-def _cfg() -> tuple:
+def _cfg() -> FabSentinelConfig:
     cfg = load_config(CONFIG_PATH)
     return cfg
 

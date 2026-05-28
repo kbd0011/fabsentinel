@@ -1,8 +1,7 @@
 """Tests for PCA-based multivariate SPC."""
-import numpy as np
 import pandas as pd
 
-from fabsentinel.spc.multivariate import fit, compute_statistics, contribution_plot
+from fabsentinel.spc.multivariate import compute_statistics, contribution_plot, fit
 
 
 def test_fit_returns_valid_model(rng):

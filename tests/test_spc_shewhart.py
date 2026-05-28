@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from fabsentinel.spc.shewhart import fit_individuals, detect
+from fabsentinel.spc.shewhart import detect, fit_individuals
 
 
 def test_in_control_no_ooc(in_control_series):
