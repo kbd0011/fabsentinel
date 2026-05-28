@@ -1,0 +1,67 @@
+# FabSentinel configuration
+data:
+  secom_data_path: data/secom.data
+  secom_labels_path: data/secom_labels.data
+  processed_path: data/processed.parquet
+  metadata_path: data/metadata.json
+
+quality:
+  missing_threshold: 0.55       # drop signals with >55% missing
+  variance_threshold: 1e-6      # drop near-constant signals
+  outlier_zscore: 4.0           # winsorize at |z|>4
+  imbalance_warn_ratio: 10.0    # warn if pos:neg > 10:1
+
+spc:
+  shewhart:
+    sigma: 3.0
+    subgroup_size: 1
+  ewma:
+    lambda: 0.2
+    L: 3.0
+  cusum:
+    k: 0.5                       # in sigma units
+    h: 5.0                       # in sigma units
+  rules:
+    western_electric: [1, 2, 3, 4]
+    nelson: [1, 2, 3, 4, 5, 6, 7, 8]
+  multivariate:
+    pca_explained_variance: 0.90
+    alpha: 0.01                   # T^2 and SPE confidence
+
+vm:
+  test_size: 0.2
+  random_state: 42
+  cv_folds: 5
+  smote_strategy: 0.30           # minority class target ratio
+  model:
+    n_estimators: 400
+    learning_rate: 0.05
+    num_leaves: 31
+    min_child_samples: 20
+    class_weight: balanced
+  threshold_strategy: pr_max_f1   # pick threshold maximizing F1 on PR curve
+  artifact_path: artifacts/vm_model.joblib
+
+rca:
+  shap_top_k: 10
+  background_samples: 100
+
+capability:
+  # Spec limits are MISSING from SECOM. We demonstrate Cp/Cpk on a simulated-spec subset.
+  simulated_subset:
+    signal_columns: [0, 1, 2, 3, 4]
+    sigma_margin: 4.0             # USL = mean + sigma_margin * sigma; LSL = mean - same
+
+reports:
+  scorecard_dir: artifacts/scorecards
+  memo_dir: artifacts/memos
+  template_dir: src/fabsentinel/reports/templates
+  top_n_signals: 10
+
+llm:
+  enabled: true
+  provider: openai
+  model: gpt-4o-mini
+  max_tokens: 600
+  temperature: 0.2
+  api_key_env: OPENAI_API_KEY

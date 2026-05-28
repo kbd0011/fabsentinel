@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.env
+.venv/
+venv/
+.ipynb_checkpoints/
+mlruns/
+mlartifacts/
+*.duckdb
+.DS_Store
+.python-version
+uv.lock
+# Outputs - generated, not committed
+artifacts/scorecards/*.pdf
+artifacts/scorecards/*.html
+artifacts/memos/*.pdf
+artifacts/memos/*.html
+artifacts/figures/
+# Keep dataset though it's large - it's the contract input
+!data/secom.data
+!data/secom_labels.data
