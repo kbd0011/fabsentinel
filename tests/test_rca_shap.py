@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 from fabsentinel.config import VMCfg, VMModelCfg
-from fabsentinel.vm.train import train
 from fabsentinel.rca.shap_attribution import fit, top_features_for_lot
+from fabsentinel.vm.train import train
 
 
 def _vm_cfg(tmp_path):
@@ -12,7 +12,6 @@ def _vm_cfg(tmp_path):
         test_size=0.3,
         random_state=0,
         cv_folds=2,
-        smote_strategy=0.5,
         model=VMModelCfg(n_estimators=30, learning_rate=0.1, num_leaves=15),
         threshold_strategy="pr_max_f1",
         artifact_path=tmp_path / "vm.joblib",

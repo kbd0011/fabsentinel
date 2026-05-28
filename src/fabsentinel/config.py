@@ -68,7 +68,6 @@ class VMModelCfg(BaseModel):
     learning_rate: float = 0.05
     num_leaves: int = 31
     min_child_samples: int = 20
-    class_weight: str = "balanced"
 
 
 class VMCfg(BaseModel):
@@ -76,7 +75,6 @@ class VMCfg(BaseModel):
     test_size: float = 0.2
     random_state: int = 42
     cv_folds: int = 5
-    smote_strategy: float = 0.30
     model: VMModelCfg
     threshold_strategy: str = "pr_max_f1"
     artifact_path: Path

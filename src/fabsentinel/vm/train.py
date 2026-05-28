@@ -1,14 +1,19 @@
-"""Virtual metrology classifier: LightGBM + SMOTE + PR-curve threshold tuning.
+"""Virtual metrology classifier: cost-sensitive LightGBM + PR-curve threshold tuning.
 
 Why these choices:
 - LightGBM handles tabular data well, runs fast on Apple Silicon, integrates with SHAP.
-- SMOTE-NC for the minority class because SECOM is ~14:1 imbalanced.
-- We pick the threshold by maximizing F1 on the PR curve (or beta-F if you tune that).
+- Cost-sensitive learning (``scale_pos_weight = n_neg / n_pos``) handles SECOM's ~14:1
+  imbalance WITHOUT resampling. This is the key correctness decision: SMOTE-balancing the
+  training set inflates the model's output-probability scale to the resampled prior, so a
+  threshold tuned on CV predictions does not transfer to the natural-prior (~6.6%) test set.
+  Class weighting keeps probabilities on the natural-prior scale, so the out-of-fold (OOF)
+  threshold transfers honestly to the held-out test set.
+- We pick the threshold by maximizing F1 on the PR curve of the natural-prior OOF predictions.
 - We report MCC, balanced accuracy, recall, PR-AUC. NEVER plain accuracy alone.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import joblib
@@ -16,7 +21,6 @@ import lightgbm as lgb
 import mlflow
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
 from loguru import logger
 from sklearn.metrics import (
     average_precision_score,
@@ -65,68 +69,76 @@ def train(X: pd.DataFrame, y: pd.Series, cfg: VMCfg, mlflow_tracking_uri: str | 
         X, y, test_size=cfg.test_size, stratify=y, random_state=cfg.random_state
     )
 
-    # SMOTE on training only
-    smote_strategy = cfg.smote_strategy
-    # SMOTE requires the minority class to have at least k_neighbors + 1 samples
-    minority = int(y_train.sum())
-    k = min(5, max(minority - 1, 1))
-    try:
-        smote = SMOTE(sampling_strategy=smote_strategy, k_neighbors=k, random_state=cfg.random_state)
-        X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
-    except Exception as e:
-        logger.warning(f"SMOTE failed ({e}); falling back to original training set.")
-        X_train_res, y_train_res = X_train, y_train
+    # Cost-sensitive learning instead of SMOTE: weight the minority class by n_neg / n_pos so
+    # the model focuses on fails WITHOUT resampling. Crucially, this leaves the predicted
+    # probabilities on the natural-prior scale, so a threshold tuned on the OOF (natural-prior)
+    # validation folds transfers to the held-out test set. SMOTE would inflate the probability
+    # scale to the resampled prior and break that transfer.
+    n_pos = int(y_train.sum())
+    n_neg = int(len(y_train) - n_pos)
+    scale_pos_weight = (n_neg / n_pos) if n_pos > 0 else 1.0
 
-    # Stratified k-fold CV on the resampled training set (using mean PR-AUC for model selection)
-    cv_aps: list[float] = []
-    cv_mcc: list[float] = []
-    skf = StratifiedKFold(n_splits=cfg.cv_folds, shuffle=True, random_state=cfg.random_state)
-    for fold_i, (tr_idx, va_idx) in enumerate(skf.split(X_train_res, y_train_res)):
-        model = lgb.LGBMClassifier(
+    def _make_model() -> lgb.LGBMClassifier:
+        return lgb.LGBMClassifier(
             n_estimators=cfg.model.n_estimators,
             learning_rate=cfg.model.learning_rate,
             num_leaves=cfg.model.num_leaves,
             min_child_samples=cfg.model.min_child_samples,
-            class_weight=cfg.model.class_weight,
+            scale_pos_weight=scale_pos_weight,
             random_state=cfg.random_state,
             n_jobs=-1,
             verbosity=-1,
         )
-        # X_train_res may be a numpy array after SMOTE; coerce back to DataFrame
-        if not isinstance(X_train_res, pd.DataFrame):
-            X_train_res = pd.DataFrame(X_train_res, columns=X.columns)
-            y_train_res = pd.Series(y_train_res)
-        X_tr = X_train_res.iloc[tr_idx]
-        X_va = X_train_res.iloc[va_idx]
-        y_tr = y_train_res.iloc[tr_idx]
-        y_va = y_train_res.iloc[va_idx]
+
+    # Stratified k-fold CV on the natural-prior training set (mean PR-AUC for model selection).
+    # We pool the out-of-fold (OOF) predictions to derive the production threshold WITHOUT
+    # touching the test set, then freeze that threshold and apply it to the held-out test set.
+    # Because no fold is resampled, the OOF predictions share the test set's natural prior.
+    cv_aps: list[float] = []
+    cv_mcc: list[float] = []
+    oof_y: list[np.ndarray] = []
+    oof_proba: list[np.ndarray] = []
+    skf = StratifiedKFold(n_splits=cfg.cv_folds, shuffle=True, random_state=cfg.random_state)
+    for tr_idx, va_idx in skf.split(X_train, y_train):
+        model = _make_model()
+        X_tr = X_train.iloc[tr_idx]
+        X_va = X_train.iloc[va_idx]
+        y_tr = y_train.iloc[tr_idx]
+        y_va = y_train.iloc[va_idx]
         model.fit(X_tr, y_tr)
         proba = model.predict_proba(X_va)[:, 1]
         cv_aps.append(average_precision_score(y_va, proba))
         thr, _ = _find_threshold(y_va.values, proba, cfg.threshold_strategy)
         cv_mcc.append(matthews_corrcoef(y_va, (proba >= thr).astype(int)))
+        oof_y.append(y_va.values)
+        oof_proba.append(proba)
+
+    # Freeze the production threshold on the pooled OOF predictions (no test-set leakage).
+    oof_y_all = np.concatenate(oof_y)
+    oof_proba_all = np.concatenate(oof_proba)
+    threshold, _ = _find_threshold(oof_y_all, oof_proba_all, cfg.threshold_strategy)
+    oof_yhat = (oof_proba_all >= threshold).astype(int)
     cv_metrics = {
         "cv_pr_auc_mean": float(np.mean(cv_aps)),
         "cv_pr_auc_std": float(np.std(cv_aps)),
         "cv_mcc_mean": float(np.mean(cv_mcc)),
         "cv_mcc_std": float(np.std(cv_mcc)),
+        "frozen_threshold": float(threshold),
+        # OOF operating-point metrics at the frozen threshold (natural prior) — these should
+        # roughly match the test-set numbers below, demonstrating the threshold transfers.
+        "oof_mcc": float(matthews_corrcoef(oof_y_all, oof_yhat)),
+        "oof_balanced_accuracy": float(balanced_accuracy_score(oof_y_all, oof_yhat)),
+        "oof_recall": float(recall_score(oof_y_all, oof_yhat, zero_division=0)),
+        "oof_f1": float(f1_score(oof_y_all, oof_yhat, zero_division=0)),
+        "scale_pos_weight": float(scale_pos_weight),
     }
     logger.info(f"CV metrics: {cv_metrics}")
 
-    # Final model on the full resampled training set
-    final = lgb.LGBMClassifier(
-        n_estimators=cfg.model.n_estimators,
-        learning_rate=cfg.model.learning_rate,
-        num_leaves=cfg.model.num_leaves,
-        min_child_samples=cfg.model.min_child_samples,
-        class_weight=cfg.model.class_weight,
-        random_state=cfg.random_state,
-        n_jobs=-1,
-        verbosity=-1,
-    )
-    final.fit(X_train_res, y_train_res)
+    # Final model on the full natural-prior training set (cost-sensitive, no resampling).
+    final = _make_model()
+    final.fit(X_train, y_train)
     proba_test = final.predict_proba(X_test)[:, 1]
-    threshold, _ = _find_threshold(y_test.values, proba_test, cfg.threshold_strategy)
+    # Apply the FROZEN threshold derived from OOF CV predictions; never re-tune on the test set.
     yhat = (proba_test >= threshold).astype(int)
 
     tn, fp, fn, tp = confusion_matrix(y_test, yhat).ravel()
@@ -139,7 +151,7 @@ def train(X: pd.DataFrame, y: pd.Series, cfg: VMCfg, mlflow_tracking_uri: str | 
         "test_f1": float(f1_score(y_test, yhat)),
         "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
         "threshold": float(threshold),
-        "n_test": int(len(y_test)),
+        "n_test": len(y_test),
     }
     logger.info(f"Test metrics: {metrics}")
 
@@ -149,8 +161,8 @@ def train(X: pd.DataFrame, y: pd.Series, cfg: VMCfg, mlflow_tracking_uri: str | 
             "n_estimators": cfg.model.n_estimators,
             "learning_rate": cfg.model.learning_rate,
             "num_leaves": cfg.model.num_leaves,
-            "class_weight": cfg.model.class_weight,
-            "smote_strategy": cfg.smote_strategy,
+            "imbalance_strategy": "scale_pos_weight",
+            "scale_pos_weight": scale_pos_weight,
             "cv_folds": cfg.cv_folds,
             "threshold_strategy": cfg.threshold_strategy,
         })

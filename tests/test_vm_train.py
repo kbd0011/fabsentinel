@@ -1,10 +1,9 @@
 """Tests for VM training (small-data, fast)."""
 import numpy as np
 import pandas as pd
-import pytest
 
 from fabsentinel.config import VMCfg, VMModelCfg
-from fabsentinel.vm.train import train, load
+from fabsentinel.vm.train import load, train
 
 
 def _cfg(tmp_path):
@@ -12,7 +11,6 @@ def _cfg(tmp_path):
         test_size=0.3,
         random_state=0,
         cv_folds=2,
-        smote_strategy=0.5,
         model=VMModelCfg(n_estimators=30, learning_rate=0.1, num_leaves=15),
         threshold_strategy="pr_max_f1",
         artifact_path=tmp_path / "vm.joblib",
