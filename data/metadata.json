@@ -1,0 +1,8 @@
+{
+  "n_lots": 1567,
+  "n_signals": 590,
+  "n_fails": 104,
+  "pass_fail_ratio": 14.067307692307692,
+  "source": "UCI ML Repository - McCann and Johnston 2008",
+  "license": "CC BY 4.0"
+}
