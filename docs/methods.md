@@ -65,6 +65,8 @@ PCA + Hotelling T² + SPE/Q residual (`spc/multivariate.py`) — the canonical K
 
 5. **T² contributions** (Westerhuis et al., 2000) attribute a T²-detected excursion to the signals driving the loadings.
 
+> **Caveat:** the T²/SPE limits here are computed in-sample on SECOM data that is not a verified in-control (Phase I) reference set, so the empirical out-of-control rate exceeds the nominal α used to set the UCLs.
+
 ## Capability (Cp / Cpk / Cpm)
 
 ```
