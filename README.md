@@ -133,11 +133,6 @@ All knobs live in `configs/config.yaml`. Edit the YAML, restart the pipeline, do
 | Imbalance handling | cost-sensitive (`scale_pos_weight`, auto) | `vm/train.py` |
 | LLM model | gpt-4o-mini | `llm.model` |
 
-## What this is not
-
-- This is not a real fab MES. SECOM is anonymized historical data from 2008.
-- It is not a substitute for a real engineering investigation. The LLM narrator drafts text; humans own the diagnosis.
-- It is not benchmarking research. We do not claim novel methods or SOTA performance.
 
 ## License & attribution
 
