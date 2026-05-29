@@ -89,4 +89,4 @@ space-build:
 	$(PYTHON) scripts/deploy_space.py --build
 
 deploy-hf:
-	$(PYTHON) scripts/deploy_space.py --deploy --repo-id kbd0011/fabsentinel
+	$(PYTHON) scripts/deploy_space.py --deploy --repo-id kbdev0011/fabsentinel

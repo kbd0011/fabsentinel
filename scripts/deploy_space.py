@@ -86,7 +86,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true", help="assemble space_build/ only")
     ap.add_argument("--deploy", action="store_true", help="build and upload to the Space")
-    ap.add_argument("--repo-id", default="kbd0011/fabsentinel")
+    ap.add_argument("--repo-id", default="kbdev0011/fabsentinel")
     args = ap.parse_args()
     if args.deploy:
         deploy(args.repo_id)
