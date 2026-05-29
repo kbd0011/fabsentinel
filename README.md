@@ -6,6 +6,9 @@ Production-grade reference pipeline on the UCI SECOM dataset (1,567 wafer lots Ã
 [![CI](https://github.com/kbd0011/fabsentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/kbd0011/fabsentinel/actions)
 ![python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![license](https://img.shields.io/badge/license-MIT-green.svg)
+[![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20demo-Hugging%20Face%20Space-ffce1c.svg)](https://huggingface.co/spaces/kbdev0011/fabsentinel)
+
+â–¶ **Live demo:** https://huggingface.co/spaces/kbdev0011/fabsentinel
 
 ---
 
