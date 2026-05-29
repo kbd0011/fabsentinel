@@ -26,6 +26,13 @@ from fabsentinel.vm.train import load as vm_load
 st.set_page_config(page_title="FabSentinel", layout="wide", page_icon="📊")
 st.title("FabSentinel — SPC + Virtual Metrology + Excursion RCA")
 st.caption("Built on UCI SECOM. CC BY 4.0.")
+st.info(
+    "Reference SPC + virtual-metrology pipeline on the **anonymized** UCI SECOM "
+    "dataset — feature names and spec limits are obscured, so capability figures "
+    "are illustrative, not real fab numbers. Methods and the engineering workflow "
+    "are the deliverable.",
+    icon="ℹ️",
+)
 
 
 @st.cache_resource

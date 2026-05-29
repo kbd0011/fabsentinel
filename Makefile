@@ -1,4 +1,4 @@
-.PHONY: install env test lint format clean demo ingest quality univariate multivariate vm rca scorecard memo ui all-artifacts
+.PHONY: install env test lint format clean demo ingest quality univariate multivariate vm rca scorecard memo ui all-artifacts space-build deploy-hf
 
 PYTHON := python
 UV := uv
@@ -82,3 +82,11 @@ ui:
 
 all-artifacts: ingest quality univariate multivariate vm rca scorecard memo
 	@echo "All artifacts regenerated."
+
+# === Hugging Face Space ===
+
+space-build:
+	$(PYTHON) scripts/deploy_space.py --build
+
+deploy-hf:
+	$(PYTHON) scripts/deploy_space.py --deploy --repo-id kbd0011/fabsentinel
