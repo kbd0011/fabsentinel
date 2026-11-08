@@ -4,9 +4,11 @@ A compact reference for the algorithms in each module, with the choices a proces
 
 ## Univariate SPC
 
+The CLI charts the 20 highest-variance retained signals in the committed run (`artifacts/univariate_ooc.csv`; `fabsentinel univariate --top-n` sets the count). Multivariate SPC below covers all 440 retained signals.
+
 ### Shewhart individuals (`spc/shewhart.py`)
 
-SECOM is delivered as a row-per-lot dataset, so we use the **individuals** chart (subgroup size = 1). The within-subgroup variance estimator is the average of the moving range divided by Hartley's d₂:
+SECOM has one row per production run (a "lot" in the code), so we use the **individuals** chart (subgroup size = 1). The within-subgroup variance estimator is the average of the moving range divided by Hartley's d₂:
 
 ```
 σ_hat = MR_bar / d₂      where  d₂ = 1.128  (n=2)
@@ -24,7 +26,7 @@ z_t = λ x_t + (1 - λ) z_{t-1}            with z_0 = μ_0
 UCL(t) = μ_0 + L · σ_z(t)
 ```
 
-Defaults λ=0.2, L=3 give an ARL₀ ≈ 200 — comparable to a 3σ Shewhart for the in-control state, but ~5× faster at detecting a 1σ shift.
+Defaults λ=0.2, L=3 are a standard setting for small sustained shifts that a Shewhart chart is slow to catch; Montgomery (ch. 9) tabulates the ARL trade-offs.
 
 ### CUSUM (`spc/cusum.py`)
 
@@ -47,7 +49,7 @@ Both Western Electric (rules 1–4) and Nelson (rules 1–8) are implemented as 
 PCA + Hotelling T² + SPE/Q residual (`spc/multivariate.py`) — the canonical Kourti & MacGregor (1995) approach.
 
 1. Standardize each signal.
-2. Run PCA on the training set; keep `k` PCs whose cumulative explained variance ≥ 0.90.
+2. Run PCA on all cleaned production runs (in-sample; see the caveat below); keep `k` PCs whose cumulative explained variance ≥ 0.90.
 3. **Hotelling T²** on the principal subspace:
 
    ```
@@ -65,7 +67,7 @@ PCA + Hotelling T² + SPE/Q residual (`spc/multivariate.py`) — the canonical K
 
 5. **T² contributions** (Westerhuis et al., 2000) attribute a T²-detected excursion to the signals driving the loadings.
 
-> **Caveat:** the T²/SPE limits here are computed in-sample on SECOM data that is not a verified in-control (Phase I) reference set, so the empirical out-of-control rate exceeds the nominal α used to set the UCLs.
+> **Caveat:** the T²/SPE limits here are computed in-sample on SECOM data that is not a verified in-control (Phase I) reference set, so the empirical out-of-control rate exceeds the nominal α used to set the UCLs: 156 of 1,567 runs exceed the T² UCL at α = 0.01 (`artifacts/multivariate_stats.csv`).
 
 ## Capability (Cp / Cpk / Cpm)
 
@@ -81,19 +83,19 @@ Cpm = (USL - LSL) / (6 sqrt(σ² + (μ - T)²))
 
 ### LightGBM (`vm/train.py`)
 
-Gradient-boosted trees, 400 estimators, learning rate 0.05, `class_weight=balanced`. Why LightGBM:
+Gradient-boosted trees, 400 estimators, learning rate 0.05, `scale_pos_weight = n_neg / n_pos` (about 14.1 on the training split). Why LightGBM:
 
-- Handles ~440 retained features without manual selection.
-- Fast on Apple Silicon — full 5-fold CV in under 2 minutes for SECOM.
+- Handles the 440 retained features without manual selection.
 - Native SHAP integration via TreeExplainer.
 
 ### Class imbalance
 
 SECOM is 14:1. We:
 
-- Apply SMOTE (sampling_strategy=0.30) **only on the training set**, never on test.
-- Use `class_weight="balanced"` in the boosting itself.
-- Choose the operating threshold by maximizing F1 on the PR curve (not 0.5).
+- Weight the failure class by `scale_pos_weight = n_neg / n_pos` instead of resampling. This fits the model as if the classes were balanced, so its scores are not calibrated failure probabilities; they are used for ranking and thresholding.
+- Choose the operating threshold by maximizing F1 on the PR curve of pooled out-of-fold predictions (stratified 5-fold CV on the training split), then apply it unchanged to the held-out test set (314 runs).
+
+Signal screening and median imputation (`data/quality.py`) run on all 1,567 runs before the train/test split; they use no labels.
 
 ### Metrics
 
@@ -103,10 +105,10 @@ We report PR-AUC, ROC-AUC, MCC, balanced accuracy, recall, F1, and a confusion-m
 
 `shap.TreeExplainer` on the LightGBM model:
 
-- **Global ranking** — mean(|SHAP|) over `n_background=100` randomly-sampled lots.
+- **Global ranking** — mean(|SHAP|) over `n_background=100` randomly sampled production runs.
 - **Local attribution** — per-lot Shapley values, signed (positive ⇒ pushes toward `fail`).
 
-The 8D memo's D4 "Candidate Root Causes" section is generated directly from the top-k SHAP-attributed signals for the lot in question.
+The 8D memo's D4 "Candidate Root Causes" section lists the five signals with the largest |SHAP| for the run in question, ranked by SHAP only. The memo shows the run's top Hotelling T² contributors in a separate table.
 
 ## LLM narrator
 
@@ -116,4 +118,4 @@ The 8D memo's D4 "Candidate Root Causes" section is generated directly from the 
 - Cautious language: "candidate root cause", "warrants investigation".
 - Never state a final conclusion.
 
-Output is stitched into the 8D memo template behind a prominent "AI-DRAFTED — review before publishing" banner. To swap providers, implement the `Narrator` protocol and edit `get_narrator()`.
+Output goes into the 8D memo under an "AI-Drafted Narrative (suggestion only)" heading with a review note, and the Streamlit UI shows it with an "AI-DRAFTED — review before publishing" label. To swap providers, implement the `Narrator` protocol and edit `get_narrator()`.

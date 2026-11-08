@@ -19,7 +19,7 @@ After ingest, FabSentinel produces:
 | File | Rows | Columns |
 |---|---|---|
 | `data/processed.parquet` | 1,567 | 592 (`timestamp`, `label`, `signal_000`…`signal_589`) |
-| `data/cleaned.parquet` | 1,567 | ≈442 (dropped 24 high-missing + 126 low-variance signals at default thresholds) |
+| `data/cleaned.parquet` | 1,567 | 442 (`timestamp`, `label` and 440 signals; 24 high-missing and 126 low-variance signals dropped at default thresholds) |
 
 ## Class distribution
 
@@ -34,16 +34,16 @@ This is a deliberately imbalanced classification problem; reporting plain accura
 ## Known limitations
 
 - **Anonymization** means there are no engineering specification limits. Cp / Cpk in FabSentinel are demonstrated on a clearly-labeled simulated-spec subset.
-- **Missing values** are common — ~24 signals have >55% missing data at the default threshold.
+- **Missing values** are common — 24 signals have >55% missing data at the default threshold.
 - **Low-variance / sensor-broken columns** — many signals are near-constant for long stretches; FabSentinel drops these by default.
-- **Time span** — about 4 months of production data in 2008. Concept drift over longer horizons is not exercised.
+- **Time span** — about three months of production data (July to October 2008). Concept drift over longer horizons is not exercised.
 - **No tool / chamber metadata** — multivariate SPC is on the full sensor vector; we cannot stratify by chamber.
 
 ## Why we use it
 
-- It is the only freely available, peer-cited fab dataset of meaningful size (1.5k+ lots, 500+ signals).
+- It is public, real fab sensor data at a useful size (1,567 production runs, 590 signals).
 - The class imbalance and missingness pattern are realistic.
-- The community has converged on PR-AUC and MCC as the right metrics, which keeps benchmarking honest.
+- The imbalance makes PR-AUC and MCC the meaningful metrics, which rules out accuracy-only comparisons.
 
 ## How we redistribute it
 

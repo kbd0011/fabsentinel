@@ -17,7 +17,7 @@ fabsentinel/
 │   │   └── capability.py      # Cp / Cpk / Cpm on simulated specs
 │   ├── vm/
 │   │   ├── features.py        # Label remap, missing imputation
-│   │   ├── train.py           # LightGBM + SMOTE + PR threshold + MLflow
+│   │   ├── train.py           # Class-weighted LightGBM + OOF threshold + MLflow
 │   │   └── evaluate.py        # PR-AUC, MCC, balanced acc, recall
 │   ├── rca/
 │   │   └── shap_attribution.py  # TreeExplainer, global + per-lot
@@ -30,11 +30,11 @@ fabsentinel/
 │   └── ui/
 │       └── app.py             # Streamlit dashboard
 ├── configs/config.yaml         # All tunable knobs
-├── tests/                      # 53 pytest tests across all modules
+├── tests/                      # 55 pytest tests across all modules
 ├── data/                       # SECOM bundled (CC BY 4.0)
 ├── docs/                       # this directory
-├── notebooks/                  # 5 exploratory notebooks
-├── artifacts/                  # generated outputs (gitignored)
+├── notebooks/                  # 6 walkthrough notebooks (00–05)
+├── artifacts/                  # generated outputs; one sample run's CSV/JSON/joblib files are committed
 ├── Makefile                    # `make install`, `make demo`, …
 ├── Dockerfile
 └── pyproject.toml              # uv + hatchling
@@ -44,7 +44,7 @@ fabsentinel/
 
 - **Raw SECOM** — `data/secom.data` is space-separated, `NaN` markers; `data/secom_labels.data` is `<label> "DD/MM/YYYY HH:MM:SS"`. Labels are `-1` (pass) / `+1` (fail).
 - **Processed parquet** — Columns: `timestamp` (datetime64), `label` (int -1/+1), then `signal_000` … `signal_589` (float, NaNs preserved).
-- **Cleaned parquet** — Same shape minus signals dropped for missingness or low variance; NaNs are median-imputed.
+- **Cleaned parquet** — Same rows minus signals dropped for missingness or low variance (440 signals kept at default thresholds); NaNs are median-imputed. Computed on all 1,567 runs before the train/test split, without labels.
 - **VM features** — Label remapped to `0` (pass) / `1` (fail). Anything else is identical to cleaned.
 
 ## Configuration philosophy
@@ -61,8 +61,8 @@ Every CLI subcommand is idempotent and resumable. `make demo` is the canonical p
 
 ## Reproducibility
 
-- Python pinned to 3.12 via `.python-version`.
-- All dependency versions pinned in `pyproject.toml`.
-- `random_state=42` in every stochastic step (train/test split, SMOTE, LightGBM, SHAP background sample).
-- MLflow logs every training run with parameters, metrics, and model artifact for full audit.
-- Quarto rendering is optional; HTML is always emitted. PDFs are byte-stable across runs (modulo the timestamp).
+- Python 3.12 (`requires-python = ">=3.12,<3.13"` in `pyproject.toml`).
+- Minimum dependency versions set in `pyproject.toml`.
+- `random_state=42` in every stochastic step (train/test split, CV folds, LightGBM, SHAP background sample).
+- MLflow logs each training run's parameters and metrics; the trained model is saved with joblib to `artifacts/vm_model.joblib`.
+- Quarto rendering is optional; HTML is always emitted.
